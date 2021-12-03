@@ -5,7 +5,13 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
 from django.contrib.auth import get_user_model
 from django.views.generic import ListView
+from django.contrib import messages
 from .models import Film
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.decorators.http import require_http_methods
 
 from films.forms import RegisterForm
 
@@ -25,7 +31,7 @@ class RegisterView(FormView):
         form.save()  # save the user
         return super().form_valid(form)
 
-class FilmList(ListView):
+class FilmList(LoginRequiredMixin ,ListView):
     template_name = 'film.html'
     model = Film
     context_object_name = 'films'
@@ -42,20 +48,35 @@ def check_username(request):
     else:
         return HttpResponse("<div id='username-error' class='success'>This username is available</div>")
     
-
+@login_required
 def add_films(request):
     name = request.POST.get('filmname')
-    film = Film.objects.create(name=name)
+    film = Film.objects.get_or_create(name=name)[0]
     
     request.user.films.add(film)
     
     films = request.user.films.all()
-    
+    messages.success(request,f'Added {name} to your list')
     return render(request,'partials/film-list.html',{'films':films})
 
+@login_required
+@require_http_methods(['DELETE'])
 def delete_films(request,pk):
     request.user.films.remove(pk)
     films = request.user.films.all()
     
     return render(request,'partials/film-list.html',{'films':films})
+
+def search_film(request):
+    search_param = request.POST.get('search')
     
+    user_films = request.user.films.all()
+    results = Film.objects.filter(name__icontains=search_param).exclude(
+        name__in=user_films.values_list('name', flat=True)
+    )
+    
+    context = {'results':results}
+    return render(request,'partials/search-result.html',context)
+
+def clear(request):
+    return HttpResponse('')
