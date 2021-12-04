@@ -8,6 +8,7 @@ class User(AbstractUser):
 class Film(models.Model):
     name = models.CharField(max_length=222,unique=True)
     users = models.ManyToManyField(User,related_name='films',through="UserFilms")
+    photo = models.ImageField(upload_to='films_photo/', null=True, blank=True)
     
     class Meta:
         ordering = [Lower('name')]

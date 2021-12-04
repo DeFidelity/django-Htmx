@@ -89,7 +89,6 @@ def clear(request):
 
 def sort(request):
     film_pks_order = request.POST.getlist('film_order')
-    print(film_pks_order)
     films = []
     for idx, film_pk in enumerate(film_pks_order,start=1):
         user_film = UserFilms.objects.get(pk=film_pk)
@@ -98,7 +97,18 @@ def sort(request):
         films.append(user_film)
     return render(request,'partials/film-list.html',{'films':films})
 
+@login_required
 def detail(request,pk):
     user_film = get_object_or_404(UserFilms,pk=pk)
     context = {'userfilm':user_film}
     return render(request,'partials/film_detail.html',context)
+
+@login_required
+def upload_photo(request,pk):
+    userfilm = get_object_or_404(UserFilms,pk=pk)
+    photo = request.FILES.get('photo')
+    userfilm.film.photo.save(photo.name, photo)
+    
+    context = {'userfilm':userfilm}
+    return render(request,'partials/film_detail.html',context)
+    
