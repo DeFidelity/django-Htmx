@@ -9,7 +9,8 @@
         <p>This film is #{{userfilm.order}} in {{userfilm.user.username|title}}'s list</p>
         <button class="btn btn-primary"
         hx-get="{% url 'films' %}"
-        hx-target="#film-list">Your List</button>
+        hx-target="#film-list"
+        hx-push-url="/films">Your List</button>
         
     </div>
     <div class="">
@@ -18,7 +19,7 @@
         {% else %}
             <p>No photo (*_*)</p>
         {% endif %}
-        <form hx-encoding="multipart/form-data" hx-post="{% url 'upload_photo' userfilm.pk %}">
+        <form hx-encoding="multipart/form-data" hx-post="{% url 'upload_photo' userfilm.pk %}" >
             {% csrf_token %}
             <div>
                 <input type="file" name="photo" />
