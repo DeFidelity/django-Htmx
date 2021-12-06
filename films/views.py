@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView
+from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from django.views.generic import ListView
 from django.contrib import messages
@@ -46,7 +47,7 @@ class FilmList(LoginRequiredMixin ,ListView):
             return 'film.html'
     
     def get_queryset(self):
-        return UserFilms.objects.filter(user=self.request.user)
+        return UserFilms.objects.prefetch_related('film').filter(user=self.request.user)
         
 
 def check_username(request):
@@ -97,12 +98,23 @@ def clear(request):
 def sort(request):
     film_pks_order = request.POST.getlist('film_order')
     films = []
+    updated_film = []
+    userfilms = UserFilms.objects.prefetch_related('film').filter(user=request.user)
     for idx, film_pk in enumerate(film_pks_order,start=1):
-        user_film = UserFilms.objects.get(pk=film_pk)
-        user_film.order = idx
-        user_film.save()
+        # user_film = UserFilms.objects.get(pk=film_pk)
+        user_film = next(u for u in userfilms if u.pk == int(film_pk))
+        if user_film.order != idx:
+            user_film.order = idx
+            updated_film.append(user_film)
+
         films.append(user_film)
-    return render(request,'partials/film-list.html',{'films':films})
+    UserFilms.objects.bulk_update(updated_film,['order'])
+        
+    paginator = Paginator(films,7)
+    page_number = len(film_pks_order)/ 7
+    page_obj = paginator.get_page(page_number)
+    context= {'films':films, 'page_obj':page_obj}
+    return render(request,'partials/film-list.html',context)
 
 @login_required
 def detail(request,pk):
